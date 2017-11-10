@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Vue</title>
+		<link href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+		<script src="https://cdn.bootcss.com/vue/2.4.4/vue.js"></script>
+		<link rel="stylesheet" type="text/css" href="css/style.css"/>
+	</head>
+	<body>
+		<!--Vue应用开始-->
+		<div id="app">
+			<div class="container">
+				<!--搜索框开始-->
+				<div class="form-group">
+					<label for="">Search</label>
+					<input type="text" class="search-input" v-model="searchQuery"/>
+				</div>
+				<!--搜索框结束-->
+				<!--结果展示栏开始-->
+				<div class="container">
+					<simple-grid :data-list="people" :columns="columns" :search-key="searchQuery"></simple-grid>
+				</div>
+				<!--结果展示栏结束-->
+			</div>
+		</div>
+		<!--Vue应用结束-->
+		
+		<!--结果展示栏模板开始-->
+		<template id="grid-template">
+			<table class="table">
+				<thead>
+					<tr>
+						<th v-for="col in columns">{{col.name}}</th>
+						<th>Delete</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr v-for="(entry, index) in filteredRow">
+						<td v-for="col in columns">
+							{{entry[col.name]}}
+						</td>
+						<td>
+							<button @click="deleteItem(index)">Delete</button>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</template>
+		<!--结果展示栏模板结束-->
+	</body>
+	<script type="text/javascript">
+		Vue.component('simple-grid', {
+			template: '#grid-template',
+			props: ['dataList', 'columns', 'searchKey'],
+			methods: {
+				deleteItem: function (index) {
+					this.dataList.splice(index, 1);
+				}
+			},
+			computed: {
+				filteredRow: function () {
+					if (this.searchKey == '') {
+						return this.dataList;
+					} else {
+						var self = this;
+						return this.dataList.filter(function (obj) {
+							console.log(obj);
+							var temp = Object.values(obj);
+							for (var i = 0; i < temp.length; i++) {
+								if (self.searchKey === temp[i].toString().toLowerCase()) {
+									return true
+								}
+							}
+						})
+					}
+				}
+			}
+		});
+		new Vue({
+			el: "#app",
+			data: {
+				searchQuery: '',
+				columns:[{
+					name: 'name'
+				},{
+					name: 'age'
+				}, {
+					name: 'sex'
+				}],
+				people: [{
+	                name: 'Jack',
+	                age: 30,
+	                sex: 'Male'
+	            }, {
+	                name: 'Bill',
+	                age: 26,
+	                sex: 'Male'
+	            }, {
+	                name: 'Tracy',
+	                age: 22,
+	                sex: 'Female'
+	            }, {
+	                name: 'Chris',
+	                age: 36,
+	                sex: 'Male'
+	            }]
+			}
+		})
+	</script>
+</html>
