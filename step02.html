@@ -100,7 +100,7 @@
 							console.log(obj);
 							var temp = Object.values(obj);
 							for (var i = 0; i < temp.length; i++) {
-								if (self.searchKey === temp[i].toString().toLowerCase()) {
+								if (temp[i].toString().toLowerCase().indexOf(self.searchKey) !== -1) {
 									return true
 								}
 							}

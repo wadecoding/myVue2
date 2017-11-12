@@ -38,7 +38,8 @@
 					<tbody>
 						<tr v-for="(entry, index) in filteredRow">
 							<td v-for="col in columns">
-								{{entry[col.name]}}
+								<span v-if="col.isKey"><a href="javascript:void(0)" @click="openEditItem(entry[col.name])">{{entry[col.name]}}</a></span>
+								<span v-else>{{entry[col.name]}}</span>
 							</td>
 							<td>
 								<button @click="deleteItem(index)">Delete</button>
@@ -49,7 +50,7 @@
 				<div class="container">
 					<button class="btn" @click="openNewItem('Create new item')">Create</button>
 				</div>
-				<modal-dialog ref="child" :mode="mode" :title="title" :fields="columns" :item="item" @save="createNewItem"></modal-dialog>
+				<modal-dialog ref="child" :mode="mode" :title="title" :fields="columns" :item="item" @save="createNewItem" @update="updateItem"></modal-dialog>
 			</div>
 		</template>
 		<!--结果展示栏模板结束-->
@@ -67,10 +68,10 @@
 						<div class="dialog-body">
 							<div class="form-group" v-for="field in fields">
 								<label for="">{{field.name}}</label>
-								<select v-if="field.dataSource" v-model="item[field.name]">
+								<select v-if="field.dataSource" v-model="item[field.name]" :disabled="mode === 2 && field.isKey">
 									<option v-for="opt in field.dataSource" :value="opt">{{opt}}</option>
 								</select>
-								<input v-else type="text" v-model="item[field.name]"/>
+								<input v-else type="text" v-model="item[field.name]" :disabled="mode === 2 && field.isKey"/>
 							</div>
 						</div>
 						<!--对话框内容部分结束-->
@@ -95,11 +96,22 @@
 				return {
 					mode: 0,
 					title: '',
-					item: {}
+					item: {},
+					keyColumn: '',
 				}
 			},
 			template: '#grid-template',
 			props: ['dataList', 'columns', 'searchKey'],
+			mounted: function () {
+				this.$nextTick(function () {
+					for(var i = 0; i < this.columns.length; i++) {
+						if(this.columns[i].isKey) {
+							this.keyColumn = this.columns[i]['name']
+							break;
+						}
+					}
+				})
+			},
 			methods: {
 				openNewItem: function (title) {
 					this.title = title;
@@ -107,14 +119,57 @@
 					this.item = {};
 					this.$refs.child.showDialog();
 				},
+				openEditItem: function(key) {
+					//查找当前数据
+					var currentItem = this.findItemByKey(key);
+					//修改对话框标题
+					this.title = 'Edit Item: ' + key;
+					this.mode = 2;
+					this.item = {};
+					this.item = this.initItemForUpdate(currentItem);
+					this.$refs.child.showDialog();
+				},
+				findItemByKey: function (key) {
+					var keyColumn = this.keyColumn;
+					for (var i = 0; i < this.dataList.length; i++) {
+						if (this.dataList[i][keyColumn] === key) {
+							return this.dataList[i];
+						}
+					}
+				},
+				initItemForUpdate: function (p) {
+					var c = c || {};
+					for (var i in p) {
+						if (p.hasOwnProperty(i)) {
+							if (typeof p[i] === 'object') {
+								c[i] = Array.isArray(p[i]) ? [] : {};
+							} else{
+							c[i] = p[i];
+							}
+						}
+					}
+					return c
+				},
 				createNewItem: function () {
 					this.dataList.push(this.item);
 					this.item = {};
 					this.$refs.child.close();
 				},
+				updateItem: function () {
+					var keyColumn = this.keyColumn;
+					for (var i = 0; i < this.dataList.length; i++) {
+						if(this.dataList[i][keyColumn] === this.item[keyColumn]) {
+							for (var j in this.item) {
+								this.dataList[i][j] = this.item[j]
+							}
+							break;
+						}
+					}
+					this.$refs.child.close();
+				},
 				deleteItem: function (index) {
 					this.dataList.splice(index, 1);
-				}
+				},
 			},
 			computed: {
 				filteredRow: function () {
@@ -147,7 +202,9 @@
 						save: function () {
 							if (this.mode === 1){
 		                        this.$emit('save');
-		                    }
+		                   } else if(this.mode === 2) {
+		                   		this.$emit('update')
+		                   }
 						},
 						close: function () {
 							this.show = false;
@@ -164,7 +221,8 @@
 			data: {
 				searchQuery: '',
 				columns:[{
-					name: 'name'
+					name: 'name',
+					isKey: true
 				},{
 					name: 'age'
 				}, {
